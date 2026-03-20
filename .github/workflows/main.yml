@@ -1,0 +1,42 @@
+name: Update App Metadata
+
+on:
+  release:
+    types: [published] # Сработает, когда ты нажмешь "Publish release"
+
+jobs:
+  patch-json:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main # Чтобы пушить изменения в основную ветку
+
+      - name: Extract Version from Gradle
+        id: get_version
+        run: |
+          # Вытаскиваем versionCode и versionName прямо из твоего конфига
+          V_CODE=$(grep "versionCode =" app/build.gradle.kts | awk '{print $3}')
+          V_NAME=$(grep "versionName =" app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          echo "code=$V_CODE" >> $GITHUB_OUTPUT
+          echo "name=$V_NAME" >> $GITHUB_OUTPUT
+
+      - name: Update JSON file
+        run: |
+          # Используем jq (стандартная утилита) для правки JSON
+          # Берем прямую ссылку на первый прикрепленный к релизу APK
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/bithub-v${{ steps.get_version.outputs.name }}-c${{ steps.get_version.outputs.code }.apk"
+          
+          jq ".versionCode = ${{ steps.get_version.outputs.code }} | 
+              .versionName = \"${{ steps.get_version.outputs.name }}\" | 
+              .downloadUrl = \"$DOWNLOAD_URL\" |
+              .changelog = \"${{ github.event.release.body }}\"" update.json > temp.json && mv temp.json update.json
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "bit-bot"
+          git config --global user.email "bot@bit-tecnologies.com"
+          git add update.json
+          git commit -m "auto: update update.json to v${{ steps.get_version.outputs.name }}"
+          git push
