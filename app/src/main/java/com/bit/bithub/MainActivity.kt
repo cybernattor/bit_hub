@@ -8,6 +8,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.Uri
 import android.os.*
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -38,7 +39,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bit.bithub.components.UpdateBottomSheet
 import com.bit.bithub.data.AppItem
+import com.bit.bithub.data.UpdateViewModel
 import com.bit.bithub.navigation.AppDestinations
 import com.bit.bithub.screens.*
 import com.bit.bithub.ui.theme.BitHubTheme
@@ -93,18 +96,38 @@ class MainActivity : ComponentActivity() {
 
     private fun installApkFromDownloadId(downloadId: Long) {
         val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-        val uri = try {
-            downloadManager.getUriForDownloadedFile(downloadId)
-        } catch (_: Exception) {
-            null
+        val query = DownloadManager.Query().setFilterById(downloadId)
+        val cursor = downloadManager.query(query)
+
+        if (cursor.moveToFirst()) {
+            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+            val status = cursor.getInt(statusIdx)
+            
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                val uriStringIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+                val uriString = cursor.getString(uriStringIdx)
+                
+                if (uriString != null) {
+                    val fileUri = Uri.parse(uriString)
+                    val filePath = fileUri.path
+                    if (filePath != null) {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            val contentUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+                            installApkFromUri(contentUri)
+                        } else {
+                            // Fallback to standard URI if path extraction fails
+                            val uri = downloadManager.getUriForDownloadedFile(downloadId)
+                            if (uri != null) installApkFromUri(uri)
+                        }
+                    }
+                }
+            }
         }
-        
-        if (uri != null) {
-            installApkFromUri(uri)
-        }
+        cursor.close()
     }
 
-    private fun installApkFromUri(uri: android.net.Uri) {
+    private fun installApkFromUri(uri: Uri) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!packageManager.canRequestPackageInstalls()) {
                 startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
@@ -134,7 +157,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BitHubApp(
-    viewModel: MainViewModel = viewModel()
+    viewModel: MainViewModel = viewModel(),
+    updateViewModel: UpdateViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -203,12 +227,18 @@ fun BitHubApp(
     }
 
     LaunchedEffect(Unit) {
+        // Initial data load
+        viewModel.loadData()
+        // Check for updates
+        updateViewModel.checkForUpdates()
+
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 scope.launch {
                     delay(2000)
                     viewModel.loadData()
+                    updateViewModel.checkForUpdates()
                 }
             }
         }
@@ -389,6 +419,17 @@ fun BitHubApp(
                     }
                 )
             }
+        }
+
+        // Update BottomSheet
+        updateViewModel.updateInfo?.let { update ->
+            UpdateBottomSheet(
+                updateInfo = update,
+                onDismiss = { updateViewModel.dismissUpdate() },
+                onUpdate = {
+                    updateViewModel.startUpdate(context, update.downloadUrl, update.versionName)
+                }
+            )
         }
 
         appToConfirmDownload?.let { app ->

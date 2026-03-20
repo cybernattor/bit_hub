@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -19,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.bit.bithub"
-        minSdk = 23 
+        minSdk = 23
         targetSdk = 36
         versionCode = 2
         versionName = "0.0.1.2"
@@ -36,25 +37,38 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
+    // Правильное именование апк при сборке
+    androidComponents {
+        onVariants { variant ->
+            variant.outputs.forEach { output ->
+                output.outputFileName.set("bithub-v${defaultConfig.versionName}-c${defaultConfig.versionCode}.apk")
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        }
-    }
+    
     buildFeatures {
         compose = true
         buildConfig = true
     }
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -66,11 +80,16 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.core.splashscreen)
     
-    // Supabase & Networking
+    // Supabase & Networking (Unified with Ktor)
     implementation(libs.supabase.postgrest)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    
+    // Dependencies for Update & UI
+    implementation(libs.serialization.json)
+    implementation(libs.compose.markdown)
+    implementation(libs.version.compare)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
