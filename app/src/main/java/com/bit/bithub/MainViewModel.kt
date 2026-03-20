@@ -1,0 +1,196 @@
+package com.bit.bithub
+
+import android.app.Application
+import android.app.DownloadManager
+import android.content.Context
+import android.os.Build
+import android.os.Environment
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.bit.bithub.data.AppItem
+import com.bit.bithub.util.isNetworkAvailable
+import com.bit.bithub.settings.SettingsManager
+import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.io.File
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val context = application.applicationContext
+    private val appContainer = context as? BitHubApplication
+    private val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+
+    var appsFromCloud by mutableStateOf<List<AppItem>>(emptyList())
+        private set
+    var isLoading by mutableStateOf(true)
+        private set
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
+    val installedApps = mutableStateMapOf<String, Int>()
+    val appsWithApk = mutableStateListOf<Int>()
+    val downloadingProgress = mutableStateMapOf<Int, Float>()
+    val downloadIdToAppId = mutableStateMapOf<Long, Int>()
+
+    init {
+        loadData()
+    }
+
+    fun loadData() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            
+            if (!isNetworkAvailable(context)) {
+                errorMessage = "Нет интернет-соединения"
+                isLoading = false
+                return@launch
+            }
+
+            try {
+                val supabase = appContainer?.supabase
+                if (supabase != null) {
+                    val results = supabase.from("apps").select().decodeList<AppItem>()
+                    appsFromCloud = results
+                    if (results.isEmpty()) {
+                        errorMessage = "Приложения не найдены"
+                    }
+                } else {
+                    errorMessage = "Ошибка конфигурации"
+                }
+            } catch (e: Exception) {
+                val msg = e.message ?: ""
+                val internetOk = isNetworkAvailable(context)
+                
+                errorMessage = when {
+                    !internetOk -> "Соединение разорвано"
+                    msg.contains("Unable to resolve host", ignoreCase = true) -> 
+                        "Не удается найти сервер bit Hub. Возможно, база данных отключена."
+                    msg.contains("500") || msg.contains("502") || msg.contains("503") -> 
+                        "Сервис Supabase временно недоступен (Ошибка сервера)"
+                    msg.contains("timeout", ignoreCase = true) -> 
+                        "Время ожидания истекло. Медленный ответ от сервера."
+                    else -> "Ошибка сервера: база данных недоступна"
+                }
+            } finally {
+                isLoading = false
+                refreshInstalledApps()
+            }
+        }
+    }
+
+    fun refreshInstalledApps() {
+        try {
+            val pm = context.packageManager
+            val packages = pm.getInstalledPackages(0)
+            installedApps.clear()
+            for (pkg in packages) {
+                val versionNumber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    pkg.longVersionCode.toInt()
+                } else {
+                    @Suppress("DEPRECATION")
+                    pkg.versionCode
+                }
+                installedApps[pkg.packageName] = versionNumber
+            }
+            refreshApkStatus()
+        } catch (_: Exception) { }
+    }
+
+    private fun refreshApkStatus() {
+        appsFromCloud.forEach { app ->
+            val file = getApkFile(app.title)
+            app.id?.let { id ->
+                if (file.exists() && !appsWithApk.contains(id)) appsWithApk.add(id)
+                else if (!file.exists() && appsWithApk.contains(id)) appsWithApk.remove(id)
+            }
+        }
+    }
+
+    fun getApkFile(name: String): File {
+        return File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "$name.apk")
+    }
+
+    fun download(app: AppItem, stateDownloadingText: String) {
+        val url = app.downloadUrl ?: ""
+        val name = app.title
+        if (url.isEmpty()) return
+
+        try {
+            val request = DownloadManager.Request(url.toUri())
+                .setTitle(name)
+                .setDescription(stateDownloadingText)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "$name.apk")
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+
+            val id = dm.enqueue(request)
+            app.id?.let { appId ->
+                downloadIdToAppId[id] = appId
+                downloadingProgress[appId] = 0.01f
+            }
+            observeDownloads()
+        } catch (_: Exception) { }
+    }
+
+    private var observingDownloads = false
+    private fun observeDownloads() {
+        if (observingDownloads) return
+        observingDownloads = true
+        viewModelScope.launch {
+            while (downloadIdToAppId.isNotEmpty()) {
+                val ids = downloadIdToAppId.keys.toLongArray()
+                if (ids.isEmpty()) break
+                
+                val query = DownloadManager.Query().setFilterById(*ids)
+                val cursor = try { dm.query(query) } catch (_: Exception) { null }
+                
+                if (cursor != null && cursor.moveToFirst()) {
+                    do {
+                        val id = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_ID))
+                        val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                        val appId = downloadIdToAppId[id] ?: continue
+                        
+                        when (status) {
+                            DownloadManager.STATUS_SUCCESSFUL -> {
+                                downloadingProgress.remove(appId)
+                                downloadIdToAppId.remove(id)
+                                refreshApkStatus()
+                            }
+                            DownloadManager.STATUS_FAILED -> {
+                                downloadingProgress.remove(appId)
+                                downloadIdToAppId.remove(id)
+                            }
+                            DownloadManager.STATUS_RUNNING, DownloadManager.STATUS_PENDING -> {
+                                val total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                                val downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                                if (total > 0) {
+                                    downloadingProgress[appId] = downloaded.toFloat() / total.toFloat()
+                                }
+                            }
+                        }
+                    } while (cursor.moveToNext())
+                    cursor.close()
+                }
+                delay(200)
+            }
+            observingDownloads = false
+        }
+    }
+
+    fun cancelDownload(appId: Int) {
+        val downloadId = downloadIdToAppId.entries.find { it.value == appId }?.key
+        if (downloadId != null) {
+            dm.remove(downloadId)
+            downloadIdToAppId.remove(downloadId)
+            downloadingProgress.remove(appId)
+        }
+    }
+}

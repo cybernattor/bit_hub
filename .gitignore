@@ -1,0 +1,44 @@
+# --- СЕКРЕТЫ (КРИТИЧЕСКИ ВАЖНО) ---
+/local.properties
+/secrets.properties
+*.jks
+*.keystore
+*.p12
+*.google_play_key.json
+
+# --- ВРЕМЕННЫЕ ФАЙЛЫ KOTLIN И GRADLE ---
+/.gradle/
+/.kotlin/
+/build/
+/app/build/
+/release/
+/.attached_state/
+
+# --- НАСТРОЙКИ ANDROID STUDIO (.idea) ---
+/.idea/
+
+# Исключаем конкретные файлы, если не скрыли всю папку .idea
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/caches/
+.idea/libraries/
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetDropDown.xml
+.idea/deploymentTargetSelector.xml
+.idea/studiobot.xml
+.idea/appInsightsSettings.xml
+.idea/deviceManager.xml
+
+# --- ЛОГИ И ВРЕМЕННОЕ ---
+*.log
+/captures/
+.externalNativeBuild/
+.cxx/
+/cmake/
+
+# --- ОС И ПРОЧЕЕ ---
+.DS_Store
+Thumbs.db
+desktop.ini
+/out/
