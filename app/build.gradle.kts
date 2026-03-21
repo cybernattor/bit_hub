@@ -1,5 +1,6 @@
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,7 +10,7 @@ plugins {
 
 // Чтение ключей из secrets.properties
 val secrets = Properties()
-val secretsFile = rootProject.file("secrets.properties")
+val secretsFile: File = rootProject.file("secrets.properties")
 if (secretsFile.exists()) {
     secrets.load(secretsFile.inputStream())
 }
@@ -38,15 +39,6 @@ android {
         }
     }
 
-    // Правильное именование апк при сборке
-    androidComponents {
-        onVariants { variant ->
-            variant.outputs.forEach { output ->
-                output.outputFileName.set("bithub-v${defaultConfig.versionName}-c${defaultConfig.versionCode}.apk")
-            }
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -55,6 +47,17 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+// Правильное именование апк при сборке (используем Android Components API)
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            val versionName = variant.versionName.get()
+            val versionCode = variant.versionCode.get()
+            output.outputFileName.set("bithub-v$versionName-c$versionCode.apk")
+        }
     }
 }
 
