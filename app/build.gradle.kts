@@ -8,6 +8,10 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Версия приложения
+val appVersionName = "0.0.1.2"
+val appVersionCode = 2
+
 // Чтение ключей из secrets.properties
 val secrets = Properties()
 val secretsFile: File = rootProject.file("secrets.properties")
@@ -23,8 +27,8 @@ android {
         applicationId = "com.bit.bithub"
         minSdk = 23
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.0.1.2"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -48,15 +52,13 @@ android {
         compose = true
         buildConfig = true
     }
-}
 
-// Правильное именование апк при сборке (используем Android Components API)
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            val versionName = variant.versionName.get()
-            val versionCode = variant.versionCode.get()
-            output.outputFileName.set("bithub-v$versionName-c$versionCode.apk")
+    // Правильное именование апк при сборке
+    @Suppress("DEPRECATION")
+    applicationVariants.all {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "bithub-v$appVersionName-c$appVersionCode.apk"
         }
     }
 }
