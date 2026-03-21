@@ -4,6 +4,7 @@ import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -21,12 +22,12 @@ if (secretsFile.exists()) {
 
 android {
     namespace = "com.bit.bithub"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.bit.bithub"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 35
         versionCode = appVersionCode
         versionName = appVersionName
 
@@ -44,8 +45,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     
     buildFeatures {
@@ -56,7 +57,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 
@@ -84,10 +85,11 @@ dependencies {
     
     // Dependencies for Update & UI
     implementation(libs.serialization.json)
-    implementation(libs.compose.markdown)
-    implementation(libs.version.compare)
+    implementation(libs.markdown)
+    implementation(libs.versioncompare)
 
     testImplementation(libs.junit)
+    testImplementation(libs.junit.jupiter)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

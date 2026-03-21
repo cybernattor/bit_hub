@@ -10,7 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bit.bithub.data.UpdateInfo
-import dev.jeziellago.compose.markdown.MarkdownText
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

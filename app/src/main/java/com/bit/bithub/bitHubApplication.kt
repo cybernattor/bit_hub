@@ -35,7 +35,7 @@ class BitHubApplication : Application() {
                 getString(R.string.notif_installed_title),
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
