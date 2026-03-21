@@ -40,17 +40,17 @@
 
 ---
 
-## 🚀 Инструкция для разработчиков
+## Инструкция для разработчиков
 
 ### 1. Настройка окружения
-Создайте файл `secrets.properties` в корневом каталоге проекта:
+Для работы с базой данных создайте файл `secrets.properties` в корневом каталоге проекта:
 ```properties
 SUPABASE_URL=https://ваш-проект.supabase.co
 SUPABASE_KEY=ваш-анонимный-ключ
 ```
 
 ### 2. Схема данных (Supabase)
-Выполните SQL-скрипт для настройки базы данных:
+Для развертывания бэкенда выполните SQL-скрипт:
 ```sql
 create table apps (
   id bigint primary key generated always as identity,
@@ -71,26 +71,18 @@ alter table apps enable row level security;
 create policy "Allow public read access" on apps for select using (true);
 ```
 
-### 3. Сборка и развертывание
+### 3. Технические характеристики
+- **Min SDK**: 23 (Android 6.0+)
+- **Target SDK**: 36 (Android 16)
+- **Язык**: Kotlin 2.0+
+- **Стек**: Compose, Coroutines, Serialization, Supabase, Coil, DownloadManager API.
+
+### 4. Стандарты именования
+- Бренд: **bit Hub** (регистр «bit» всегда строчный).
+- Package: `com.bit.bithub`.
+- Entry Point: `BitHubApplication` (системный класс).
+
+### 5. Развертывание
 1. Выполните `Sync Project with Gradle Files`.
-2. Проверьте валидность ссылок в Supabase.
-3. Соберите проект: `Build -> Rebuild Project`.
-
----
-
-## 📏 Стандарты проекта
-- **Бренд**: bit Hub (регистр «bit» всегда строчный).
-- **Package**: `com.bit.bithub`
-- **Entry Point**: `BitHubApplication`
-
----
-
-## 📸 Скриншоты
-<p align="center">
-  <i>Место для ваших скриншотов. Добавьте их в папку assets и укажите ссылки здесь.</i>
-</p>
-
----
-<p align="center">
-  Разработано с ❤️ для Android сообщества.
-</p>
+2. Проверьте валидность ссылок в Supabase (ссылка должна вести напрямую на `.apk`).
+3. Соберите проект через `Build -> Rebuild Project`.
