@@ -52,15 +52,6 @@ android {
         compose = true
         buildConfig = true
     }
-
-    // Правильное именование апк при сборке
-    @Suppress("DEPRECATION")
-    applicationVariants.all {
-        outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "bithub-v$appVersionName-c$appVersionCode.apk"
-        }
-    }
 }
 
 kotlin {
