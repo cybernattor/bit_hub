@@ -10,6 +10,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bit.bithub.data.UpdateInfo
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,10 +47,12 @@ fun UpdateBottomSheet(
                     .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
             ) {
-                MarkdownText(
-                    markdown = updateInfo.changelog,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 15.sp
+                Markdown(
+                    content = updateInfo.changelog,
+                    colors = markdownColor(text = MaterialTheme.colorScheme.onSurfaceVariant),
+                    typography = markdownTypography(
+                        text = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp)
+                    )
                 )
             }
             

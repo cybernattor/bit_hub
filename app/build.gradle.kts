@@ -85,7 +85,8 @@ dependencies {
     
     // Dependencies for Update & UI
     implementation(libs.serialization.json)
-    implementation(libs.markdown)
+    implementation(libs.markdown.renderer)
+    implementation(libs.markdown.renderer.m3)
     implementation(libs.versioncompare)
 
     testImplementation(libs.junit)

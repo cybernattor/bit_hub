@@ -13,7 +13,7 @@ coreSplashScreen = "1.0.1"
 supabase = "3.0.3"
 ktor = "3.0.1"
 okhttp = "4.12.0"
-composeMarkdown = "0.5.0"
+mikepenzMarkdown = "0.40.2"
 versionCompare = "1.5.0"
 serialization = "1.7.3"
 junitJupiter = "5.14.0"
@@ -47,7 +47,8 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 # Custom libraries
-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
+markdown-renderer = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-android", version.ref = "mikepenzMarkdown" }
+markdown-renderer-m3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3-android", version.ref = "mikepenzMarkdown" }
 versioncompare = { group = "io.github.g00fy2", name = "versioncompare", version.ref = "versionCompare" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
 
