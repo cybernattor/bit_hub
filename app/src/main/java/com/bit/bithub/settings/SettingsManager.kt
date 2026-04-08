@@ -13,6 +13,9 @@ object SettingsManager {
     // Настройка темы
     var themeMode by mutableStateOf(ThemeMode.SYSTEM)
     
-    // Настройка сети
+    // Настройка сети и обновлений
     var downloadWifiOnly by mutableStateOf(false)
+    var useMobileData by mutableStateOf(true)
+    var updateOverMobileData by mutableStateOf(false)
+    var periodicUpdateCheck by mutableStateOf(true)
 }

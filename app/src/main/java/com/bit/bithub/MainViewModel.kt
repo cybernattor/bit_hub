@@ -128,8 +128,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .setDescription(stateDownloadingText)
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "$name.apk")
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(true)
+                .setAllowedOverMetered(SettingsManager.useMobileData && !SettingsManager.downloadWifiOnly)
+                .setAllowedOverRoaming(SettingsManager.useMobileData && !SettingsManager.downloadWifiOnly)
+                .setAllowedNetworkTypes(
+                    if (SettingsManager.downloadWifiOnly) DownloadManager.Request.NETWORK_WIFI 
+                    else DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
+                )
 
             val id = dm.enqueue(request)
             app.id?.let { appId ->

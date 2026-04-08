@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
                 val uriString = cursor.getString(uriStringIdx)
                 
                 if (uriString != null) {
-                    val fileUri = Uri.parse(uriString)
+                    val fileUri = uriString.toUri()
                     val filePath = fileUri.path
                     if (filePath != null) {
                         val file = File(filePath)
@@ -413,6 +413,21 @@ fun BitHubApp(
                     onThemeChange = { SettingsManager.themeMode = it },
                     downloadWifiOnly = SettingsManager.downloadWifiOnly,
                     onDownloadWifiOnlyChange = { SettingsManager.downloadWifiOnly = it },
+                    useMobileData = SettingsManager.useMobileData,
+                    onUseMobileDataChange = { 
+                        SettingsManager.useMobileData = it
+                        (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                    },
+                    updateOverMobileData = SettingsManager.updateOverMobileData,
+                    onUpdateOverMobileDataChange = { 
+                        SettingsManager.updateOverMobileData = it
+                        (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                    },
+                    periodicUpdateCheck = SettingsManager.periodicUpdateCheck,
+                    onPeriodicUpdateCheckChange = { 
+                        SettingsManager.periodicUpdateCheck = it
+                        (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                    },
                     installedCount = viewModel.installedApps.size,
                     onClose = { 
                         scope.launch { profileSheetState.hide() }.invokeOnCompletion {

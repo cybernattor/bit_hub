@@ -8,6 +8,14 @@ import android.os.Build
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.ExistingPeriodicWorkPolicy
+import com.bit.bithub.worker.UpdateWorker
+import com.bit.bithub.settings.SettingsManager
+import java.util.concurrent.TimeUnit
 
 class BitHubApplication : Application() {
     
@@ -17,6 +25,28 @@ class BitHubApplication : Application() {
         super.onCreate()
         initSupabase()
         createNotificationChannel()
+        setupPeriodicUpdate()
+    }
+
+    fun setupPeriodicUpdate() {
+        if (!SettingsManager.periodicUpdateCheck) {
+            WorkManager.getInstance(this).cancelUniqueWork("periodic_update_check")
+            return
+        }
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(if (SettingsManager.updateOverMobileData) NetworkType.CONNECTED else NetworkType.UNMETERED)
+            .build()
+
+        val updateRequest = PeriodicWorkRequestBuilder<UpdateWorker>(2, TimeUnit.DAYS)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "periodic_update_check",
+            ExistingPeriodicWorkPolicy.KEEP,
+            updateRequest
+        )
     }
 
     private fun initSupabase() {

@@ -26,6 +26,12 @@ fun ProfileScreen(
     onThemeChange: (ThemeMode) -> Unit,
     downloadWifiOnly: Boolean,
     onDownloadWifiOnlyChange: (Boolean) -> Unit,
+    useMobileData: Boolean,
+    onUseMobileDataChange: (Boolean) -> Unit,
+    updateOverMobileData: Boolean,
+    onUpdateOverMobileDataChange: (Boolean) -> Unit,
+    periodicUpdateCheck: Boolean,
+    onPeriodicUpdateCheckChange: (Boolean) -> Unit,
     installedCount: Int,
     onClose: () -> Unit
 ) {
@@ -81,17 +87,55 @@ fun ProfileScreen(
                 )
             }
 
-            SettingsSection(title = "Сеть") {
+            SettingsSection(title = "Сеть и обновления") {
+                ListItem(
+                    headlineContent = { Text("Использовать мобильные данные") },
+                    supportingContent = { Text("Разрешить доступ к интернету через мобильную сеть") },
+                    trailingContent = {
+                        Switch(
+                            checked = useMobileData,
+                            onCheckedChange = onUseMobileDataChange
+                        )
+                    },
+                    leadingContent = { Icon(Icons.Default.SignalCellularAlt, null) }
+                )
+
                 ListItem(
                     headlineContent = { Text("Только через Wi-Fi") },
-                    supportingContent = { Text("Скачивание и обновление приложений") },
+                    supportingContent = { Text("Скачивание приложений только при наличии Wi-Fi") },
                     trailingContent = {
                         Switch(
                             checked = downloadWifiOnly,
-                            onCheckedChange = onDownloadWifiOnlyChange
+                            onCheckedChange = onDownloadWifiOnlyChange,
+                            enabled = useMobileData
                         )
                     },
                     leadingContent = { Icon(Icons.Default.Wifi, null) }
+                )
+
+                ListItem(
+                    headlineContent = { Text("Обновления через мобильную сеть") },
+                    supportingContent = { Text("Автоматическая проверка и загрузка обновлений") },
+                    trailingContent = {
+                        Switch(
+                            checked = updateOverMobileData,
+                            onCheckedChange = onUpdateOverMobileDataChange,
+                            enabled = useMobileData
+                        )
+                    },
+                    leadingContent = { Icon(Icons.Default.Update, null) }
+                )
+
+                ListItem(
+                    headlineContent = { Text("Фоновая проверка обновлений") },
+                    supportingContent = { Text("Помогает поддерживать базу данных активной") },
+                    trailingContent = {
+                        Switch(
+                            checked = periodicUpdateCheck,
+                            onCheckedChange = onPeriodicUpdateCheckChange
+                        )
+                    },
+                    leadingContent = { Icon(Icons.Default.Sync, null) }
                 )
             }
 
