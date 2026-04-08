@@ -80,12 +80,16 @@ class MainActivity : ComponentActivity() {
             val currentTheme = SettingsManager.themeMode
             val isDarkTheme = if (currentTheme == ThemeMode.SYSTEM) isSystemInDarkTheme() else currentTheme == ThemeMode.DARK
 
-            DisposableEffect(isDarkTheme) {
+            LaunchedEffect(isDarkTheme) {
+                val style = if (isDarkTheme) {
+                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                } else {
+                    SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+                }
                 enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { isDarkTheme },
-                    navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { isDarkTheme }
+                    statusBarStyle = style,
+                    navigationBarStyle = style
                 )
-                onDispose {}
             }
 
             BitHubTheme(themeMode = currentTheme) {

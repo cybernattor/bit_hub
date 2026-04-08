@@ -10,7 +10,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bit.bithub.BuildConfig
-import com.g00fy2.versioncompare.Version
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -28,21 +27,28 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             isChecking = true
             val latestRelease = repository.getLatestRelease()
             if (latestRelease != null) {
-                try {
-                    val currentVersion = Version(BuildConfig.VERSION_NAME)
-                    val latestVersion = Version(latestRelease.versionName)
-                    
-                    if (latestVersion.isHigherThan(currentVersion)) {
-                        updateInfo = latestRelease
-                    }
-                } catch (e: Exception) {
-                    // Fallback to string comparison if version parsing fails
-                    if (latestRelease.versionName != BuildConfig.VERSION_NAME) {
-                        updateInfo = latestRelease
-                    }
+                if (isVersionHigher(BuildConfig.VERSION_NAME, latestRelease.versionName)) {
+                    updateInfo = latestRelease
                 }
             }
             isChecking = false
+        }
+    }
+
+    private fun isVersionHigher(current: String, latest: String): Boolean {
+        return try {
+            val currentParts = current.split(".").map { it.filter { c -> c.isDigit() }.toIntOrNull() ?: 0 }
+            val latestParts = latest.split(".").map { it.filter { c -> c.isDigit() }.toIntOrNull() ?: 0 }
+            val maxLength = maxOf(currentParts.size, latestParts.size)
+            for (i in 0 until maxLength) {
+                val currentPart = currentParts.getOrElse(i) { 0 }
+                val latestPart = latestParts.getOrElse(i) { 0 }
+                if (latestPart > currentPart) return true
+                if (latestPart < currentPart) return false
+            }
+            false
+        } catch (e: Exception) {
+            latest != current
         }
     }
 
