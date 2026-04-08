@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,7 +60,14 @@ fun AppDetailScreen(
                             tint = if (isFavorite) Color.Red else LocalContentColor.current
                         )
                     }
-                    IconButton(onClick = {}) {
+                    val context = LocalContext.current
+                    IconButton(onClick = {
+                        val sendIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_TEXT, "Скачай ${app.title} в bit Hub! Приложение от ${app.developer}")
+                        }
+                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
+                    }) {
                         Icon(Icons.Default.Share, null)
                     }
                 }
@@ -91,7 +99,6 @@ fun AppDetailScreen(
                 Column {
                     Text(app.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text(app.developer, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    Text("Содержит рекламу • Покупки в приложении", style = MaterialTheme.typography.labelSmall)
                 }
             }
 
@@ -108,7 +115,7 @@ fun AppDetailScreen(
                     VerticalDivider(Modifier.height(40.dp))
                     AppStatItem(app.size, "Размер")
                     VerticalDivider(Modifier.height(40.dp))
-                    AppStatItem("3+", "Возраст")
+                    AppStatItem(app.versionCode, "Версия")
                 }
             }
 

@@ -10,11 +10,14 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bit.bithub.components.*
 import com.bit.bithub.data.AppItem
+import kotlinx.coroutines.launch
 
 val homeCategories = listOf(
     "\uD83C\uDFAE" to "Игры",
@@ -34,8 +37,11 @@ fun HomeScreen(
     val featured = apps.take(3)
     val recommended = apps.filter { !it.isGame }.take(5)
     val latestGames = apps.filter { it.isGame }.reversed().take(5)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("bit Hub", fontWeight = FontWeight.ExtraBold) },
@@ -56,7 +62,9 @@ fun HomeScreen(
             }
 
             item {
-                CategoriesSection(homeCategories, onCategoryClick = {})
+                CategoriesSection(homeCategories, onCategoryClick = {
+                    scope.launch { snackbarHostState.showSnackbar("Фильтр по категориям скоро появится...") }
+                })
             }
 
             item {

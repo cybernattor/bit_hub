@@ -13,7 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.provider.Settings
+import android.content.Intent
+import com.bit.bithub.BuildConfig
 import com.bit.bithub.components.SettingsItem
 import com.bit.bithub.components.SettingsSection
 import com.bit.bithub.components.ThemeSelectionDialog
@@ -139,15 +143,21 @@ fun ProfileScreen(
                 )
             }
 
+            val context = LocalContext.current
             SettingsSection(title = "Настройки") {
                 SettingsItem(Icons.Default.Palette, "Тема оформления") { showThemeDialog = true }
-                SettingsItem(Icons.Default.Notifications, "Уведомления") { }
+                SettingsItem(Icons.Default.Notifications, "Уведомления") {
+                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    }
+                    context.startActivity(intent)
+                }
             }
 
             SettingsSection(title = "Инфо") {
                 ListItem(
                     headlineContent = { Text("Версия") },
-                    trailingContent = { Text("1.6.0-stable") },
+                    trailingContent = { Text(BuildConfig.VERSION_NAME) },
                     leadingContent = { Icon(Icons.Default.Info, null) }
                 )
             }

@@ -60,13 +60,22 @@ class BitHubApplication : Application() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            // Канал для установки приложений
+            val installChannel = NotificationChannel(
                 INSTALL_CHANNEL_ID,
                 getString(R.string.notif_installed_title),
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            // Канал для уведомлений об обновлениях (используется UpdateWorker)
+            val updatesChannel = NotificationChannel(
+                com.bit.bithub.worker.UpdateWorker.UPDATES_CHANNEL_ID,
+                "Обновления приложений",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Уведомления о доступных обновлениях"
+            }
+            notificationManager.createNotificationChannels(listOf(installChannel, updatesChannel))
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bit.bithub.components.*
 import com.bit.bithub.data.AppItem
+import kotlinx.coroutines.launch
 
 val appCategories = listOf(
     "\uD83D\uDCDD" to "Инструменты",
@@ -58,11 +59,13 @@ fun StoreScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val filteredApps = apps.filter { it.title.contains(searchQuery, ignoreCase = true) }
-    
     val featured = apps.take(5)
     val recommended = apps.reversed().take(5)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             StoreSearchBar(
                 query = searchQuery,
@@ -91,7 +94,10 @@ fun StoreScreen(
                     downloadingIds = downloadingIds,
                     onAppClick = onAppClick,
                     onInstallClick = onInstallClick,
-                    isGamesTab = isGamesTab
+                    isGamesTab = isGamesTab,
+                    onCategoryClick = {
+                        scope.launch { snackbarHostState.showSnackbar("Фильтр по категориям скоро появится...") }
+                    }
                 )
             }
         }
@@ -141,7 +147,8 @@ private fun StoreContent(
     downloadingIds: Map<Int, Float>,
     onAppClick: (AppItem) -> Unit,
     onInstallClick: (AppItem) -> Unit,
-    isGamesTab: Boolean
+    isGamesTab: Boolean,
+    onCategoryClick: (String) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (searchQuery.isEmpty()) {
@@ -153,7 +160,7 @@ private fun StoreContent(
             item {
                 CategoriesSection(
                     categories = if (isGamesTab) gameCategories else appCategories,
-                    onCategoryClick = { /* TODO */ }
+                    onCategoryClick = onCategoryClick
                 )
             }
 
