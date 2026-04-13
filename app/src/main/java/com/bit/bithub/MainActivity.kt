@@ -425,16 +425,9 @@ fun BitHubApp(
                         onThemeChange = { SettingsManager.themeMode = it },
                         autoUpdateMode = SettingsManager.autoUpdateMode,
                         onAutoUpdateSettingsClick = { showAutoUpdateSettings = true },
-                        downloadWifiOnly = SettingsManager.downloadWifiOnly,
-                        onDownloadWifiOnlyChange = { SettingsManager.downloadWifiOnly = it },
                         useMobileData = SettingsManager.useMobileData,
                         onUseMobileDataChange = { 
                             SettingsManager.useMobileData = it
-                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                        },
-                        updateOverMobileData = SettingsManager.updateOverMobileData,
-                        onUpdateOverMobileDataChange = { 
-                            SettingsManager.updateOverMobileData = it
                             (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
                         },
                         periodicUpdateCheck = SettingsManager.periodicUpdateCheck,

@@ -32,12 +32,8 @@ fun ProfileScreen(
     onThemeChange: (ThemeMode) -> Unit,
     autoUpdateMode: AutoUpdateMode,
     onAutoUpdateSettingsClick: () -> Unit,
-    downloadWifiOnly: Boolean,
-    onDownloadWifiOnlyChange: (Boolean) -> Unit,
     useMobileData: Boolean,
     onUseMobileDataChange: (Boolean) -> Unit,
-    updateOverMobileData: Boolean,
-    onUpdateOverMobileDataChange: (Boolean) -> Unit,
     periodicUpdateCheck: Boolean,
     onPeriodicUpdateCheckChange: (Boolean) -> Unit,
     installedCount: Int,
@@ -123,31 +119,7 @@ fun ProfileScreen(
                     leadingContent = { Icon(Icons.Default.SignalCellularAlt, null) }
                 )
 
-                ListItem(
-                    headlineContent = { Text("Только через Wi-Fi") },
-                    supportingContent = { Text("Скачивание приложений только при наличии Wi-Fi") },
-                    trailingContent = {
-                        Switch(
-                            checked = downloadWifiOnly,
-                            onCheckedChange = onDownloadWifiOnlyChange,
-                            enabled = useMobileData
-                        )
-                    },
-                    leadingContent = { Icon(Icons.Default.Wifi, null) }
-                )
 
-                ListItem(
-                    headlineContent = { Text("Обновления через мобильную сеть") },
-                    supportingContent = { Text("Автоматическая проверка и загрузка обновлений") },
-                    trailingContent = {
-                        Switch(
-                            checked = updateOverMobileData,
-                            onCheckedChange = onUpdateOverMobileDataChange,
-                            enabled = useMobileData
-                        )
-                    },
-                    leadingContent = { Icon(Icons.Default.Update, null) }
-                )
 
                 ListItem(
                     headlineContent = { Text("Фоновая проверка обновлений") },
