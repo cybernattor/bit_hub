@@ -56,26 +56,9 @@ import java.io.File
 
 class MainActivity : ComponentActivity() {
 
-    private val downloadReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-            if (id != -1L) {
-                installApkFromDownloadId(id)
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-
-        val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-        ContextCompat.registerReceiver(
-            this,
-            downloadReceiver,
-            filter,
-            ContextCompat.RECEIVER_EXPORTED
-        )
 
         enableEdgeToEdge()
         setContent {
@@ -100,35 +83,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun installApkFromDownloadId(downloadId: Long) {
-        val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-        val query = DownloadManager.Query().setFilterById(downloadId)
-        val cursor = downloadManager.query(query)
-
-        if (cursor.moveToFirst()) {
-            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-            val status = cursor.getInt(statusIdx)
-            
-            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                val uriStringIdx = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
-                val uriString = cursor.getString(uriStringIdx)
-                
-                if (uriString != null) {
-                    val file = File(Uri.parse(uriString).path!!)
-                    if (file.exists()) {
-                        UpdateInstaller.installApk(this, file)
-                    }
-                }
-            }
-        }
-        cursor.close()
-    }
-
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            unregisterReceiver(downloadReceiver)
-        } catch (_: Exception) {}
     }
 }
 
