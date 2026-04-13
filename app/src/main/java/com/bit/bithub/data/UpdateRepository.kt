@@ -41,10 +41,10 @@ class UpdateRepository(private val context: Context) {
             }
 
             val remoteVersionName = parseTagName(release.tagName)
-            val remoteVersionCode = extractVersionCode(apkAsset.name) ?: release.id.toInt()
+            val remoteVersionCode = extractVersionCode(apkAsset.name)
 
             if (isVersionHigher(remoteVersionCode, remoteVersionName)) {
-                Log.d(TAG, "[UpdateCheck] New version found: $remoteVersionName ($remoteVersionCode)")
+                Log.d(TAG, "[UpdateCheck] New version found: $remoteVersionName (code: ${remoteVersionCode ?: "unknown"})")
                 return@withContext UpdateInfo(
                     versionName = remoteVersionName,
                     versionCode = remoteVersionCode,
@@ -74,23 +74,33 @@ class UpdateRepository(private val context: Context) {
         }
     }
 
-    private fun isVersionHigher(remoteCode: Int, remoteName: String): Boolean {
-        if (remoteCode > BuildConfig.VERSION_CODE) return true
-        if (remoteCode == BuildConfig.VERSION_CODE) {
-            return compareVersions(remoteName, BuildConfig.VERSION_NAME) > 0
+    private fun isVersionHigher(remoteCode: Int?, remoteName: String): Boolean {
+        if (remoteCode != null) {
+            if (remoteCode > BuildConfig.VERSION_CODE) return true
+            if (remoteCode < BuildConfig.VERSION_CODE) return false
         }
-        return false
+        return compareVersions(remoteName, BuildConfig.VERSION_NAME) > 0
     }
 
     private fun compareVersions(v1: String, v2: String): Int {
-        val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
-        val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
+        val clean1 = v1.split("-")[0]
+        val clean2 = v2.split("-")[0]
+        
+        val parts1 = clean1.split(".").map { it.toIntOrNull() ?: 0 }
+        val parts2 = clean2.split(".").map { it.toIntOrNull() ?: 0 }
+        
         val length = maxOf(parts1.size, parts2.size)
         for (i in 0 until length) {
             val p1 = parts1.getOrElse(i) { 0 }
             val p2 = parts2.getOrElse(i) { 0 }
             if (p1 != p2) return p1.compareTo(p2)
         }
+        
+        // Если основные части равны, но в одной есть суффикс (alpha/beta), 
+        // а в другой нет — версия без суффикса считается выше (релиз)
+        if (v1.contains("-") && !v2.contains("-")) return -1
+        if (!v1.contains("-") && v2.contains("-")) return 1
+
         return 0
     }
 

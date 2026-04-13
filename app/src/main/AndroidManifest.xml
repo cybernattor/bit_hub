@@ -45,6 +45,14 @@
                 android:name="android.support.FILE_PATH_DESCRIPTOR"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".util.UpdateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
