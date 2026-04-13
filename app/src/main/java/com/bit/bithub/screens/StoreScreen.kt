@@ -124,7 +124,7 @@ private fun StoreSearchBar(
                 Icon(
                     Icons.Default.AccountCircle,
                     contentDescription = "Профиль",
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(36.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

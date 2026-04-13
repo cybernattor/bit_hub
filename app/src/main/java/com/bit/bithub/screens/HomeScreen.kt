@@ -47,7 +47,13 @@ fun HomeScreen(
                 title = { Text("bit Hub", fontWeight = FontWeight.ExtraBold) },
                 actions = {
                     IconButton(onClick = onSearchClick) { Icon(Icons.Default.Search, null) }
-                    IconButton(onClick = onProfileClick) { Icon(Icons.Default.AccountCircle, null) }
+                    IconButton(onClick = onProfileClick) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
                 }
             )
         }
