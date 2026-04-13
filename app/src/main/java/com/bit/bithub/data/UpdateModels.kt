@@ -20,7 +20,7 @@ data class GitHubAsset(
 
 data class UpdateInfo(
     val versionName: String,
-    val versionCode: Int,
+    val versionCode: Int?,
     val changelog: String,
     val downloadUrl: String,
     val fileName: String
