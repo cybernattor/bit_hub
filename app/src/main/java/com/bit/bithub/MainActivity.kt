@@ -228,6 +228,30 @@ fun BitHubApp(
 
     if (selectedAppId != null) BackHandler { selectedAppId = null }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(viewModel.appsWithUpdates.size) {
+        val updatesCount = viewModel.appsWithUpdates.size
+        if (updatesCount > 0 && !viewModel.isLoading) {
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.msg_updates_available, updatesCount),
+                actionLabel = context.getString(R.string.msg_btn_view),
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                vibrate()
+                showProfileSheet = true
+            }
+        }
+    }
+
+    if (updateViewModel.showNoUpdateMessage) {
+        LaunchedEffect(Unit) {
+            snackbarHostState.showSnackbar("У вас установлена последняя версия bit Hub")
+            updateViewModel.resetNoUpdateMessage()
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
@@ -363,14 +387,6 @@ fun BitHubApp(
             }
         }
 
-        val snackbarHostState = remember { SnackbarHostState() }
-        if (updateViewModel.showNoUpdateMessage) {
-            LaunchedEffect(Unit) {
-                snackbarHostState.showSnackbar("У вас установлена последняя версия bit Hub")
-                updateViewModel.resetNoUpdateMessage()
-            }
-        }
-        
         SnackbarHost(
             hostState = snackbarHostState, 
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp)

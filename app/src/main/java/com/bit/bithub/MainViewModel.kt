@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -22,9 +23,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val context = application.applicationContext
-    private val appContainer = context as? BitHubApplication
-    private val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+    private val appContainer = application as? BitHubApplication
+    private val dm = application.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
     var appsFromCloud by mutableStateOf<List<AppItem>>(emptyList())
         private set
@@ -38,6 +38,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val downloadingProgress = mutableStateMapOf<Int, Float>()
     val downloadIdToAppId = mutableStateMapOf<Long, Int>()
 
+    val appsWithUpdates: List<AppItem> by derivedStateOf {
+        appsFromCloud.filter { app ->
+            val installedVersion = installedApps[app.packageName] ?: return@filter false
+            app.versionNumber > installedVersion
+        }
+    }
+
     init {
         loadData()
     }
@@ -47,7 +54,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isLoading = true
             errorMessage = null
             
-            if (!isNetworkAvailable(context)) {
+            if (!isNetworkAvailable(getApplication())) {
                 errorMessage = "Нет интернет-соединения"
                 isLoading = false
                 return@launch
@@ -66,7 +73,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 val msg = e.message ?: ""
-                val internetOk = isNetworkAvailable(context)
+                val internetOk = isNetworkAvailable(getApplication())
                 
                 errorMessage = when {
                     !internetOk -> "Соединение разорвано"
@@ -87,7 +94,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshInstalledApps() {
         try {
-            val pm = context.packageManager
+            val pm = getApplication<Application>().packageManager
             val packages = pm.getInstalledPackages(0)
             installedApps.clear()
             for (pkg in packages) {

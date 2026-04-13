@@ -49,6 +49,12 @@
     <string name="notifications">Уведомления</string>
     <string name="app_version">Версия</string>
     <string name="unit_pcs">шт.</string>
+    <string name="msg_updates_available">Доступно обновлений: %1$d</string>
+    <string name="msg_btn_view">Посмотреть</string>
+    <string name="msg_checking_updates">Проверка обновлений…</string>
+    <string name="msg_no_updates">У вас установлены последние версии всех приложений</string>
+    <string name="notif_apps_updates_title">Доступны обновления приложений</string>
+    <string name="notif_apps_updates_body">Для %1$d приложений в bit Hub доступны новые версии</string>
 
     <!-- Настройки сети -->
     <string name="settings_wifi_only_title">Только через Wi-Fi</string>

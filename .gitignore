@@ -1,44 +1,55 @@
-# --- СЕКРЕТЫ (КРИТИЧЕСКИ ВАЖНО) ---
+# --- СЕКРЕТЫ И КЛЮЧИ (КРИТИЧЕСКИ ВАЖНО) ---
 /local.properties
 /secrets.properties
 *.jks
 *.keystore
 *.p12
 *.google_play_key.json
+# Если используете Firebase, этот файл обычно содержит API ключи
+# google-services.json
 
-# --- ВРЕМЕННЫЕ ФАЙЛЫ KOTLIN И GRADLE ---
-/.gradle/
-/.kotlin/
-/build/
-/app/build/
-/release/
+# --- GRADLE И ВРЕМЕННЫЕ ФАЙЛЫ ---
+.gradle/
+build/
+/*/build/
+.kotlin/
 /.attached_state/
+*.pyc
 
-# --- НАСТРОЙКИ ANDROID STUDIO (.idea) ---
-/.idea/
-
-# Исключаем конкретные файлы, если не скрыли всю папку .idea
+# --- НАСТРОЙКИ ANDROID STUDIO / IDE ---
+.idea/
 *.iml
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/caches/
-.idea/libraries/
-.idea/assetWizardSettings.xml
-.idea/deploymentTargetDropDown.xml
-.idea/deploymentTargetSelector.xml
-.idea/studiobot.xml
-.idea/appInsightsSettings.xml
-.idea/deviceManager.xml
-
-# --- ЛОГИ И ВРЕМЕННОЕ ---
-*.log
+*.iws
+*.ipr
 /captures/
 .externalNativeBuild/
 .cxx/
 /cmake/
+.navigation/
+# Файлы настроек устройства
+.idea/modules.xml
+.idea/workspace.xml
+.idea/libraries/
 
-# --- ОС И ПРОЧЕЕ ---
+# --- АРТЕФАКТЫ СБОРКИ ---
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+*.aar
+# Не игнорируем jar обертку Gradle
+!gradle-wrapper.jar
+/app
+# --- ЛОГИ И АНАЛИЗ ---
+*.log
+*.hprof
+/captures/
+
+# --- ОПЕРАЦИОННАЯ СИСТЕМА ---
 .DS_Store
 Thumbs.db
 desktop.ini
 /out/
+*.tmp
+*.bak
