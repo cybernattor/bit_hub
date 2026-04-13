@@ -32,8 +32,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -41,11 +39,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bit.bithub.components.UpdateBottomSheet
 import com.bit.bithub.data.AppItem
+import com.bit.bithub.data.NetworkType
+import com.bit.bithub.data.SettingsRepository
+import com.bit.bithub.data.UpdateInterval
 import com.bit.bithub.data.UpdateViewModel
 import com.bit.bithub.navigation.AppDestinations
 import com.bit.bithub.screens.*
 import com.bit.bithub.ui.theme.BitHubTheme
 import com.bit.bithub.ui.theme.ThemeMode
+import com.bit.bithub.util.UpdateInstaller
 import com.bit.bithub.util.isWifiConnected
 import com.bit.bithub.settings.SettingsManager
 import kotlinx.coroutines.delay
@@ -112,42 +114,14 @@ class MainActivity : ComponentActivity() {
                 val uriString = cursor.getString(uriStringIdx)
                 
                 if (uriString != null) {
-                    val fileUri = uriString.toUri()
-                    val filePath = fileUri.path
-                    if (filePath != null) {
-                        val file = File(filePath)
-                        if (file.exists()) {
-                            val contentUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-                            installApkFromUri(contentUri)
-                        } else {
-                            // Fallback to standard URI if path extraction fails
-                            val uri = downloadManager.getUriForDownloadedFile(downloadId)
-                            if (uri != null) installApkFromUri(uri)
-                        }
+                    val file = File(Uri.parse(uriString).path!!)
+                    if (file.exists()) {
+                        UpdateInstaller.installApk(this, file)
                     }
                 }
             }
         }
         cursor.close()
-    }
-
-    private fun installApkFromUri(uri: Uri) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!packageManager.canRequestPackageInstalls()) {
-                startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                    data = "package:$packageName".toUri()
-                })
-                return
-            }
-        }
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-        }
-        try {
-            startActivity(intent)
-        } catch (_: Exception) { }
     }
 
     override fun onDestroy() {
@@ -167,6 +141,7 @@ fun BitHubApp(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val settingsRepository = remember { SettingsRepository(context) }
     
     val stateDownloading = stringResource(R.string.state_downloading)
     
@@ -231,9 +206,7 @@ fun BitHubApp(
     }
 
     LaunchedEffect(Unit) {
-        // Initial data load
         viewModel.loadData()
-        // Check for updates
         updateViewModel.checkForUpdates()
 
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -253,17 +226,6 @@ fun BitHubApp(
                 .build()
             cm.registerNetworkCallback(request, networkCallback)
         } catch (_: Exception) {}
-    }
-
-    fun installApkFromFile(file: File) {
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-        }
-        try {
-            context.startActivity(intent)
-        } catch (_: Exception) { }
     }
 
     fun startDownload(app: AppItem) {
@@ -288,7 +250,7 @@ fun BitHubApp(
 
         val apkFile = viewModel.getApkFile(app.title)
         if (apkFile.exists() && !viewModel.installedApps.containsKey(app.packageName)) {
-            installApkFromFile(apkFile)
+            UpdateInstaller.installApk(context, apkFile)
             return
         }
 
@@ -403,6 +365,9 @@ fun BitHubApp(
         
         if (showProfileSheet) {
             var showAutoUpdateSettings by remember { mutableStateOf(false) }
+            val backgroundCheck by settingsRepository.backgroundUpdateCheck.collectAsState(initial = true)
+            val interval by settingsRepository.updateInterval.collectAsState(initial = UpdateInterval.TWENTY_FOUR_HOURS)
+            val networkType by settingsRepository.networkType.collectAsState(initial = NetworkType.WIFI_ONLY)
 
             ModalBottomSheet(
                 onDismissRequest = { showProfileSheet = false },
@@ -412,30 +377,24 @@ fun BitHubApp(
             ) {
                 if (showAutoUpdateSettings) {
                     AutoUpdateSettingsScreen(
-                        currentMode = SettingsManager.autoUpdateMode,
-                        onModeChange = { 
-                            SettingsManager.autoUpdateMode = it
-                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                        },
+                        backgroundCheckEnabled = backgroundCheck,
+                        onBackgroundCheckChange = { scope.launch { settingsRepository.setBackgroundUpdateCheck(it) } },
+                        currentInterval = interval,
+                        onIntervalChange = { scope.launch { settingsRepository.setUpdateInterval(it) } },
+                        currentNetworkType = networkType,
+                        onNetworkTypeChange = { scope.launch { settingsRepository.setNetworkType(it) } },
                         onBack = { showAutoUpdateSettings = false }
                     )
                 } else {
                     ProfileScreen(
                         currentThemeMode = SettingsManager.themeMode,
                         onThemeChange = { SettingsManager.themeMode = it },
-                        autoUpdateMode = SettingsManager.autoUpdateMode,
                         onAutoUpdateSettingsClick = { showAutoUpdateSettings = true },
-                        useMobileData = SettingsManager.useMobileData,
-                        onUseMobileDataChange = { 
-                            SettingsManager.useMobileData = it
-                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                        },
-                        periodicUpdateCheck = SettingsManager.periodicUpdateCheck,
-                        onPeriodicUpdateCheckChange = { 
-                            SettingsManager.periodicUpdateCheck = it
-                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                        },
                         installedCount = viewModel.installedApps.size,
+                        isCheckingUpdate = updateViewModel.isChecking,
+                        onCheckUpdateClick = { 
+                            updateViewModel.checkForUpdates(manual = true)
+                        },
                         onClose = { 
                             scope.launch { profileSheetState.hide() }.invokeOnCompletion {
                                 if (!profileSheetState.isVisible) {
@@ -448,13 +407,26 @@ fun BitHubApp(
             }
         }
 
+        val snackbarHostState = remember { SnackbarHostState() }
+        if (updateViewModel.showNoUpdateMessage) {
+            LaunchedEffect(Unit) {
+                snackbarHostState.showSnackbar("У вас установлена последняя версия bit Hub")
+                updateViewModel.resetNoUpdateMessage()
+            }
+        }
+        
+        SnackbarHost(
+            hostState = snackbarHostState, 
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp)
+        )
+
         // Update BottomSheet
         updateViewModel.updateInfo?.let { update ->
             UpdateBottomSheet(
                 updateInfo = update,
                 onDismiss = { updateViewModel.dismissUpdate() },
                 onUpdate = {
-                    updateViewModel.startUpdate(context, update.downloadUrl, update.versionName)
+                    updateViewModel.startUpdate(context, update)
                 }
             )
         }

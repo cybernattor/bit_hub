@@ -4,17 +4,16 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.work.CoroutineWorker
-import androidx.work.WorkerParameters
-import androidx.work.ListenableWorker.Result
-import com.bit.bithub.BitHubApplication
+import androidx.work.*
 import com.bit.bithub.R
-import com.bit.bithub.data.AppItem
-import com.bit.bithub.settings.SettingsManager
-import io.github.jan.supabase.postgrest.from
+import com.bit.bithub.data.SettingsRepository
+import com.bit.bithub.data.UpdateRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 class UpdateWorker(
     context: Context,
@@ -22,79 +21,79 @@ class UpdateWorker(
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
+        const val WORK_NAME = "com.bit.bithub.worker.UpdateWorker"
         const val UPDATES_CHANNEL_ID = "UPDATES_CHANNEL"
         const val UPDATES_NOTIF_ID = 1001
+
+        fun schedule(context: Context, intervalHours: Long, networkType: com.bit.bithub.data.NetworkType) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(
+                    if (networkType == com.bit.bithub.data.NetworkType.WIFI_ONLY) NetworkType.UNMETERED 
+                    else NetworkType.CONNECTED
+                )
+                .setRequiresBatteryNotLow(true)
+                .build()
+
+            val request = PeriodicWorkRequestBuilder<UpdateWorker>(
+                intervalHours, TimeUnit.HOURS
+            )
+            .setConstraints(constraints)
+            .build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                WORK_NAME,
+                ExistingPeriodicWorkPolicy.UPDATE,
+                request
+            )
+            Log.d("bit_hub_updater", "[UpdateWorker] Scheduled every $intervalHours hours")
+        }
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            Log.d("bit_hub_updater", "[UpdateWorker] Cancelled")
+        }
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        if (!SettingsManager.periodicUpdateCheck) return@withContext Result.success()
+        val settingsRepository = SettingsRepository(applicationContext)
+        val isEnabled = settingsRepository.backgroundUpdateCheck.first()
+        
+        if (!isEnabled) {
+            return@withContext Result.success()
+        }
 
         try {
-            val appContainer = applicationContext as? BitHubApplication
-            val supabase = appContainer?.supabase ?: return@withContext Result.retry()
+            val updateRepository = UpdateRepository(applicationContext)
+            val updateInfo = updateRepository.checkUpdate()
 
-            // Получаем список приложений из БД (заодно пингуем базу)
-            val cloudApps = supabase.from("apps").select().decodeList<AppItem>()
-
-            // Проверяем установленные приложения на наличие обновлений
-            val pm = applicationContext.packageManager
-            var updatesCount = 0
-
-            for (app in cloudApps) {
-                val pkgName = app.packageName ?: continue
-                try {
-                    val installedInfo = pm.getPackageInfo(pkgName, 0)
-                    val installedVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        installedInfo.longVersionCode.toInt()
-                    } else {
-                        @Suppress("DEPRECATION")
-                        installedInfo.versionCode
-                    }
-                    if (app.versionNumber > installedVersionCode) {
-                        updatesCount++
-                    }
-                } catch (_: Exception) {
-                    // Приложение не установлено — пропускаем
-                }
-            }
-
-            if (updatesCount > 0) {
-                sendUpdateNotification(updatesCount)
+            if (updateInfo != null) {
+                sendUpdateNotification(updateInfo.versionName)
             }
 
             Result.success()
         } catch (e: Exception) {
+            Log.e("bit_hub_updater", "[UpdateWorker] Failed: ${e.message}")
             Result.retry()
         }
     }
 
-    private fun sendUpdateNotification(count: Int) {
+    private fun sendUpdateNotification(versionName: String) {
         val notificationManager =
             applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Создаём канал уведомлений для обновлений (если ещё нет)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 UPDATES_CHANNEL_ID,
-                "Обновления приложений",
+                "Обновления bit Hub",
                 NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Уведомления о доступных обновлениях"
-            }
+            )
             notificationManager.createNotificationChannel(channel)
-        }
-
-        val message = if (count == 1) {
-            "Доступно 1 обновление"
-        } else {
-            "Доступно $count обновления(-й)"
         }
 
         val notification = NotificationCompat.Builder(applicationContext, UPDATES_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("bit Hub")
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setContentTitle("Доступно обновление bit Hub")
+            .setContentText("Новая версия $versionName готова к загрузке")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
@@ -102,4 +101,3 @@ class UpdateWorker(
         notificationManager.notify(UPDATES_NOTIF_ID, notification)
     }
 }
-

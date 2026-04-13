@@ -3,19 +3,10 @@ package com.bit.bithub
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
 import android.os.Build
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
-import androidx.work.Constraints
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.ExistingPeriodicWorkPolicy
-import com.bit.bithub.worker.UpdateWorker
-import com.bit.bithub.settings.SettingsManager
-import java.util.concurrent.TimeUnit
 
 class BitHubApplication : Application() {
     
@@ -24,29 +15,7 @@ class BitHubApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         initSupabase()
-        createNotificationChannel()
-        setupPeriodicUpdate()
-    }
-
-    fun setupPeriodicUpdate() {
-        if (!SettingsManager.periodicUpdateCheck) {
-            WorkManager.getInstance(this).cancelUniqueWork("periodic_update_check")
-            return
-        }
-
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(if (SettingsManager.updateOverMobileData) NetworkType.CONNECTED else NetworkType.UNMETERED)
-            .build()
-
-        val updateRequest = PeriodicWorkRequestBuilder<UpdateWorker>(2, TimeUnit.DAYS)
-            .setConstraints(constraints)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "periodic_update_check",
-            ExistingPeriodicWorkPolicy.KEEP,
-            updateRequest
-        )
+        createNotificationChannels()
     }
 
     private fun initSupabase() {
@@ -58,23 +27,24 @@ class BitHubApplication : Application() {
         }
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            // Канал для установки приложений
+            
             val installChannel = NotificationChannel(
                 INSTALL_CHANNEL_ID,
-                getString(R.string.notif_installed_title),
+                "Установка приложений",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            // Канал для уведомлений об обновлениях (используется UpdateWorker)
+            
             val updatesChannel = NotificationChannel(
                 com.bit.bithub.worker.UpdateWorker.UPDATES_CHANNEL_ID,
-                "Обновления приложений",
+                "Обновления bit Hub",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Уведомления о доступных обновлениях"
+                description = "Уведомления о доступных обновлениях bit Hub"
             }
+
             notificationManager.createNotificationChannels(listOf(installChannel, updatesChannel))
         }
     }

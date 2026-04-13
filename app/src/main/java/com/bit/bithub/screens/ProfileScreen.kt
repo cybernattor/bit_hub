@@ -22,7 +22,6 @@ import com.bit.bithub.BuildConfig
 import com.bit.bithub.components.SettingsItem
 import com.bit.bithub.components.SettingsSection
 import com.bit.bithub.components.ThemeSelectionDialog
-import com.bit.bithub.settings.AutoUpdateMode
 import com.bit.bithub.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,13 +29,10 @@ import com.bit.bithub.ui.theme.ThemeMode
 fun ProfileScreen(
     currentThemeMode: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
-    autoUpdateMode: AutoUpdateMode,
     onAutoUpdateSettingsClick: () -> Unit,
-    useMobileData: Boolean,
-    onUseMobileDataChange: (Boolean) -> Unit,
-    periodicUpdateCheck: Boolean,
-    onPeriodicUpdateCheckChange: (Boolean) -> Unit,
     installedCount: Int,
+    isCheckingUpdate: Boolean,
+    onCheckUpdateClick: () -> Unit,
     onClose: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -89,48 +85,12 @@ fun ProfileScreen(
                     trailingContent = { Text("$installedCount шт.") },
                     leadingContent = { Icon(Icons.AutoMirrored.Filled.List, null) }
                 )
-            }
-
-            SettingsSection(title = "Сеть и обновления") {
+                
                 ListItem(
-                    headlineContent = { Text("Автообновление приложений") },
-                    supportingContent = { 
-                        val modeText = when(autoUpdateMode) {
-                            AutoUpdateMode.ANY_NETWORK -> "Через любую сеть"
-                            AutoUpdateMode.LIMITED_DATA -> "С ограничением трафика"
-                            AutoUpdateMode.WIFI_ONLY -> "Только через Wi-Fi"
-                            AutoUpdateMode.NEVER -> "Отключено"
-                        }
-                        Text(modeText)
-                    },
+                    headlineContent = { Text("Автообновление") },
+                    supportingContent = { Text("Настройки фоновой проверки и сети") },
                     leadingContent = { Icon(Icons.Default.Update, null) },
                     modifier = Modifier.clickable { onAutoUpdateSettingsClick() }
-                )
-
-                ListItem(
-                    headlineContent = { Text("Использовать мобильные данные") },
-                    supportingContent = { Text("Разрешить доступ к интернету через мобильную сеть") },
-                    trailingContent = {
-                        Switch(
-                            checked = useMobileData,
-                            onCheckedChange = onUseMobileDataChange
-                        )
-                    },
-                    leadingContent = { Icon(Icons.Default.SignalCellularAlt, null) }
-                )
-
-
-
-                ListItem(
-                    headlineContent = { Text("Фоновая проверка обновлений") },
-                    supportingContent = { Text("Помогает поддерживать базу данных активной") },
-                    trailingContent = {
-                        Switch(
-                            checked = periodicUpdateCheck,
-                            onCheckedChange = onPeriodicUpdateCheckChange
-                        )
-                    },
-                    leadingContent = { Icon(Icons.Default.Sync, null) }
                 )
             }
 
@@ -148,8 +108,15 @@ fun ProfileScreen(
             SettingsSection(title = "Инфо") {
                 ListItem(
                     headlineContent = { Text("Версия") },
-                    trailingContent = { Text(BuildConfig.VERSION_NAME) },
-                    leadingContent = { Icon(Icons.Default.Info, null) }
+                    trailingContent = { 
+                        if (isCheckingUpdate) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text(BuildConfig.VERSION_NAME)
+                        }
+                    },
+                    leadingContent = { Icon(Icons.Default.Info, null) },
+                    modifier = Modifier.clickable(enabled = !isCheckingUpdate) { onCheckUpdateClick() }
                 )
             }
         }

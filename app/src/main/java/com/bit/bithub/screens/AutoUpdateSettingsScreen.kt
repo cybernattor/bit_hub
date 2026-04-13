@@ -1,5 +1,6 @@
 package com.bit.bithub.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,19 +8,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.bit.bithub.settings.AutoUpdateMode
+import com.bit.bithub.data.NetworkType
+import com.bit.bithub.data.UpdateInterval
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoUpdateSettingsScreen(
-    currentMode: AutoUpdateMode,
-    onModeChange: (AutoUpdateMode) -> Unit,
+    backgroundCheckEnabled: Boolean,
+    onBackgroundCheckChange: (Boolean) -> Unit,
+    currentInterval: UpdateInterval,
+    onIntervalChange: (UpdateInterval) -> Unit,
+    currentNetworkType: NetworkType,
+    onNetworkTypeChange: (NetworkType) -> Unit,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -39,41 +44,74 @@ fun AutoUpdateSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 16.dp)
         ) {
-            AutoUpdateOption(
-                title = "Обновление через Wi-Fi или мобильный интернет",
-                description = "Обновлять все приложения по мере выпуска обновлений. Может взиматься плата за передачу данных.",
-                selected = currentMode == AutoUpdateMode.ANY_NETWORK,
-                onClick = { onModeChange(AutoUpdateMode.ANY_NETWORK) }
+            ListItem(
+                headlineContent = { Text("Фоновая проверка обновлений") },
+                supportingContent = { Text("Проверять наличие новых версий в фоновом режиме") },
+                trailingContent = {
+                    Switch(
+                        checked = backgroundCheckEnabled,
+                        onCheckedChange = onBackgroundCheckChange
+                    )
+                }
             )
-            
-            AutoUpdateOption(
-                title = "Обновление с ограниченным расходом трафика",
-                description = "Если сеть Wi-Fi недоступна, bit Hub будет обновлять самые важные приложения, используя ограниченный объем трафика. Подробнее...",
-                selected = currentMode == AutoUpdateMode.LIMITED_DATA,
-                onClick = { onModeChange(AutoUpdateMode.LIMITED_DATA) }
-            )
-            
-            AutoUpdateOption(
-                title = "Обновление только через Wi-Fi",
-                selected = currentMode == AutoUpdateMode.WIFI_ONLY,
-                onClick = { onModeChange(AutoUpdateMode.WIFI_ONLY) }
-            )
-            
-            AutoUpdateOption(
-                title = "Никогда",
-                selected = currentMode == AutoUpdateMode.NEVER,
-                onClick = { onModeChange(AutoUpdateMode.NEVER) }
-            )
+
+            AnimatedVisibility(
+                visible = backgroundCheckEnabled,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    
+                    Text(
+                        text = "Периодичность",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                    )
+
+                    UpdateIntervalOption(
+                        title = "Раз в 6 часов",
+                        selected = currentInterval == UpdateInterval.SIX_HOURS,
+                        onClick = { onIntervalChange(UpdateInterval.SIX_HOURS) }
+                    )
+
+                    UpdateIntervalOption(
+                        title = "Раз в сутки",
+                        selected = currentInterval == UpdateInterval.TWENTY_FOUR_HOURS,
+                        onClick = { onIntervalChange(UpdateInterval.TWENTY_FOUR_HOURS) }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Тип сети",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+                    )
+
+                    NetworkTypeOption(
+                        title = "Любая сеть",
+                        selected = currentNetworkType == NetworkType.ANY,
+                        onClick = { onNetworkTypeChange(NetworkType.ANY) }
+                    )
+
+                    NetworkTypeOption(
+                        title = "Только Wi-Fi",
+                        selected = currentNetworkType == NetworkType.WIFI_ONLY,
+                        onClick = { onNetworkTypeChange(NetworkType.WIFI_ONLY) }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun AutoUpdateOption(
+private fun UpdateIntervalOption(
     title: String,
-    description: String? = null,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -81,28 +119,30 @@ private fun AutoUpdateOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 16.sp
-            )
-            if (description != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 20.sp
-                )
-            }
-        }
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(text = title, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun NetworkTypeOption(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(text = title, style = MaterialTheme.typography.bodyLarge)
     }
 }
