@@ -402,41 +402,56 @@ fun BitHubApp(
         }
         
         if (showProfileSheet) {
+            var showAutoUpdateSettings by remember { mutableStateOf(false) }
+
             ModalBottomSheet(
                 onDismissRequest = { showProfileSheet = false },
                 sheetState = profileSheetState,
-                dragHandle = { BottomSheetDefaults.DragHandle() },
+                dragHandle = { if (!showAutoUpdateSettings) BottomSheetDefaults.DragHandle() },
                 modifier = Modifier.fillMaxSize()
             ) {
-                ProfileScreen(
-                    currentThemeMode = SettingsManager.themeMode,
-                    onThemeChange = { SettingsManager.themeMode = it },
-                    downloadWifiOnly = SettingsManager.downloadWifiOnly,
-                    onDownloadWifiOnlyChange = { SettingsManager.downloadWifiOnly = it },
-                    useMobileData = SettingsManager.useMobileData,
-                    onUseMobileDataChange = { 
-                        SettingsManager.useMobileData = it
-                        (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                    },
-                    updateOverMobileData = SettingsManager.updateOverMobileData,
-                    onUpdateOverMobileDataChange = { 
-                        SettingsManager.updateOverMobileData = it
-                        (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                    },
-                    periodicUpdateCheck = SettingsManager.periodicUpdateCheck,
-                    onPeriodicUpdateCheckChange = { 
-                        SettingsManager.periodicUpdateCheck = it
-                        (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
-                    },
-                    installedCount = viewModel.installedApps.size,
-                    onClose = { 
-                        scope.launch { profileSheetState.hide() }.invokeOnCompletion {
-                            if (!profileSheetState.isVisible) {
-                                showProfileSheet = false
+                if (showAutoUpdateSettings) {
+                    AutoUpdateSettingsScreen(
+                        currentMode = SettingsManager.autoUpdateMode,
+                        onModeChange = { 
+                            SettingsManager.autoUpdateMode = it
+                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                        },
+                        onBack = { showAutoUpdateSettings = false }
+                    )
+                } else {
+                    ProfileScreen(
+                        currentThemeMode = SettingsManager.themeMode,
+                        onThemeChange = { SettingsManager.themeMode = it },
+                        autoUpdateMode = SettingsManager.autoUpdateMode,
+                        onAutoUpdateSettingsClick = { showAutoUpdateSettings = true },
+                        downloadWifiOnly = SettingsManager.downloadWifiOnly,
+                        onDownloadWifiOnlyChange = { SettingsManager.downloadWifiOnly = it },
+                        useMobileData = SettingsManager.useMobileData,
+                        onUseMobileDataChange = { 
+                            SettingsManager.useMobileData = it
+                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                        },
+                        updateOverMobileData = SettingsManager.updateOverMobileData,
+                        onUpdateOverMobileDataChange = { 
+                            SettingsManager.updateOverMobileData = it
+                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                        },
+                        periodicUpdateCheck = SettingsManager.periodicUpdateCheck,
+                        onPeriodicUpdateCheckChange = { 
+                            SettingsManager.periodicUpdateCheck = it
+                            (context.applicationContext as? BitHubApplication)?.setupPeriodicUpdate()
+                        },
+                        installedCount = viewModel.installedApps.size,
+                        onClose = { 
+                            scope.launch { profileSheetState.hide() }.invokeOnCompletion {
+                                if (!profileSheetState.isVisible) {
+                                    showProfileSheet = false
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 

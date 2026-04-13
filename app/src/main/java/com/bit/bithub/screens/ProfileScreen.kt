@@ -1,6 +1,7 @@
 package com.bit.bithub.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,6 +22,7 @@ import com.bit.bithub.BuildConfig
 import com.bit.bithub.components.SettingsItem
 import com.bit.bithub.components.SettingsSection
 import com.bit.bithub.components.ThemeSelectionDialog
+import com.bit.bithub.settings.AutoUpdateMode
 import com.bit.bithub.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,6 +30,8 @@ import com.bit.bithub.ui.theme.ThemeMode
 fun ProfileScreen(
     currentThemeMode: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
+    autoUpdateMode: AutoUpdateMode,
+    onAutoUpdateSettingsClick: () -> Unit,
     downloadWifiOnly: Boolean,
     onDownloadWifiOnlyChange: (Boolean) -> Unit,
     useMobileData: Boolean,
@@ -92,6 +96,21 @@ fun ProfileScreen(
             }
 
             SettingsSection(title = "Сеть и обновления") {
+                ListItem(
+                    headlineContent = { Text("Автообновление приложений") },
+                    supportingContent = { 
+                        val modeText = when(autoUpdateMode) {
+                            AutoUpdateMode.ANY_NETWORK -> "Через любую сеть"
+                            AutoUpdateMode.LIMITED_DATA -> "С ограничением трафика"
+                            AutoUpdateMode.WIFI_ONLY -> "Только через Wi-Fi"
+                            AutoUpdateMode.NEVER -> "Отключено"
+                        }
+                        Text(modeText)
+                    },
+                    leadingContent = { Icon(Icons.Default.Update, null) },
+                    modifier = Modifier.clickable { onAutoUpdateSettingsClick() }
+                )
+
                 ListItem(
                     headlineContent = { Text("Использовать мобильные данные") },
                     supportingContent = { Text("Разрешить доступ к интернету через мобильную сеть") },
