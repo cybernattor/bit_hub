@@ -6,8 +6,12 @@ import com.bit.bithub.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,28 +27,42 @@ class UpdateRepository(private val context: Context) {
                 coerceInputValues = true
             })
         }
+        install(DefaultRequest) {
+            header("User-Agent", "bit-Hub-App")
+        }
     }
 
     suspend fun checkUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
         try {
             Log.d(TAG, "[UpdateCheck] Started")
-            val release = client.get("https://api.github.com/repos/cybernattor/bit_hub/releases/latest").body<GitHubRelease>()
+            val response: HttpResponse = client.get("https://api.github.com/repos/cybernattor/bit_hub/releases/latest")
             
-            // Фильтрация: .apk и -release
-            val apkAsset = release.assets.find { 
-                it.name.endsWith(".apk") && it.name.contains("-release", ignoreCase = true) 
-            } ?: release.assets.find { it.name.endsWith(".apk") }
+            if (!response.status.isSuccess()) {
+                Log.e(TAG, "[UpdateCheck] HTTP Error: ${response.status}")
+                return@withContext null
+            }
+
+            val release = response.body<GitHubRelease>()
+            if (release.tagName.isEmpty()) {
+                Log.e(TAG, "[UpdateCheck] Release tag is empty")
+                return@withContext null
+            }
+            
+            // Фильтрация: .apk
+            val apkAsset = release.assets.find { it.name.endsWith(".apk") }
 
             if (apkAsset == null) {
-                Log.e(TAG, "[UpdateCheck] No suitable APK asset found")
+                Log.e(TAG, "[UpdateCheck] No APK asset found")
                 return@withContext null
             }
 
             val remoteVersionName = parseTagName(release.tagName)
             val remoteVersionCode = extractVersionCode(apkAsset.name)
 
+            Log.d(TAG, "[UpdateCheck] Remote: $remoteVersionName (code: $remoteVersionCode), Local: ${BuildConfig.VERSION_NAME} (code: ${BuildConfig.VERSION_CODE})")
+
             if (isVersionHigher(remoteVersionCode, remoteVersionName)) {
-                Log.d(TAG, "[UpdateCheck] New version found: $remoteVersionName (code: ${remoteVersionCode ?: "unknown"})")
+                Log.d(TAG, "[UpdateCheck] New version found!")
                 return@withContext UpdateInfo(
                     versionName = remoteVersionName,
                     versionCode = remoteVersionCode,
@@ -56,7 +74,8 @@ class UpdateRepository(private val context: Context) {
                 Log.d(TAG, "[UpdateCheck] App is up to date")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "[UpdateCheck] Error: ${e.message}")
+            Log.e(TAG, "[UpdateCheck] Exception: ${e.message}")
+            e.printStackTrace()
         }
         null
     }

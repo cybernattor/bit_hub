@@ -5,17 +5,17 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GitHubRelease(
-    @SerialName("tag_name") val tagName: String,
-    val body: String,
-    val assets: List<GitHubAsset>,
-    val id: Long
+    @SerialName("tag_name") val tagName: String = "",
+    val body: String = "",
+    val assets: List<GitHubAsset> = emptyList(),
+    val id: Long = -1L
 )
 
 @Serializable
 data class GitHubAsset(
-    val name: String,
-    @SerialName("browser_download_url") val downloadUrl: String,
-    val size: Long
+    val name: String = "",
+    @SerialName("browser_download_url") val downloadUrl: String = "",
+    val size: Long = 0L
 )
 
 data class UpdateInfo(
